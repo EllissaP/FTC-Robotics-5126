@@ -46,7 +46,7 @@ import com.qualcomm.robotcore.hardware.DcMotor;
 
 
 @Autonomous(name="Auto Parking", group="Iterative Opmode")
-//@Disabled
+@Disabled
 public class CroftAutoPark extends OpMode
 {
     private DcMotor LWheel;

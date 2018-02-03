@@ -33,7 +33,6 @@ import com.qualcomm.robotcore.eventloop.opmode.Disabled;
 import com.qualcomm.robotcore.eventloop.opmode.LinearOpMode;
 import com.qualcomm.robotcore.hardware.DcMotor;
 import com.qualcomm.robotcore.hardware.Servo;
-import com.qualcomm.robotcore.util.ElapsedTime;
 import org.firstinspires.ftc.robotcore.external.ClassFactory;
 import org.firstinspires.ftc.robotcore.external.matrices.OpenGLMatrix;
 import org.firstinspires.ftc.robotcore.external.matrices.VectorF;
@@ -46,6 +45,8 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaLocalizer;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackable;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackableDefaultListener;
 import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
+import com.qualcomm.robotcore.hardware.ColorSensor;
+import com.qualcomm.robotcore.util.ElapsedTime;
 
 //AHS Robotics
 //Team 5126
@@ -54,7 +55,7 @@ import org.firstinspires.ftc.robotcore.external.navigation.VuforiaTrackables;
 //Croft Autonomous for left red alliance
 
 @Autonomous(name="Auto Red Left", group ="Concept")
-//@Disabled
+@Disabled
 public class CroftAutoRedLeft extends LinearOpMode
 {
     private DcMotor LWheel;
@@ -62,6 +63,8 @@ public class CroftAutoRedLeft extends LinearOpMode
     private DcMotor ArmHeight;
     private DcMotor ArmRotation;
     private Servo Claw;
+    private Servo ColorArm;
+    private ColorSensor ColorSensor;
 
     private int i;//vuforia counter
 
@@ -73,7 +76,7 @@ public class CroftAutoRedLeft extends LinearOpMode
 
     VuforiaLocalizer vuforia;
 
-    private ElapsedTime runtime = new ElapsedTime();
+    private ElapsedTime     runtime = new ElapsedTime();
 
     static final double     COUNTS_PER_MOTOR_REV    = 1440 ;
     static final double     DRIVE_GEAR_REDUCTION    = 0.5 ;
@@ -88,6 +91,8 @@ public class CroftAutoRedLeft extends LinearOpMode
         ArmHeight = hardwareMap.dcMotor.get("ArmHeight");
         Claw = hardwareMap.servo.get("Claw");
         ArmRotation = hardwareMap.dcMotor.get("ArmRotation");
+        ColorArm = hardwareMap.servo.get("Color Arm");
+        ColorSensor = hardwareMap.colorSensor.get("Color Sensor");
 
         i = 0;
 
@@ -113,7 +118,9 @@ public class CroftAutoRedLeft extends LinearOpMode
 
         relicTrackables.activate();
 
-        Claw.setPosition(0);//set claw on block
+        Claw.setPosition(.1);//set claw on block
+        ColorArm.setPosition(.5);//color arm starts stationary
+        ColorSensor.enableLed(true);
 
         while (opModeIsActive() && i < 1)
         {
@@ -140,23 +147,79 @@ public class CroftAutoRedLeft extends LinearOpMode
                     double rY = rot.secondAngle;
                     double rZ = rot.thirdAngle;
                 }
+                encoderDrive(DRIVE_SPEED, 1.86, -1.86, 3.0);//drive back to jewels
+                ColorArm.setPosition(.8);//puts arm down
+                try//pause for flow
+                {
+                    Thread.sleep(1500);
+                }
+                catch (InterruptedException ex)
+                {
+                    Thread.currentThread().interrupt();
+                }
+                if(ColorSensor.red() < .1)
+                {
+                    encoderDrive(DRIVE_SPEED, -2, 2, 3.0);//move forward to knock off blue jewel
+                    ColorArm.setPosition(.1);//lift color arm up
+                    try//pause for flow
+                    {
+                        Thread.sleep(400);
+                    }
+                    catch (InterruptedException ex)
+                    {
+                        Thread.currentThread().interrupt();
+                    }
+                }
+                else
+                {
+                    encoderDrive(DRIVE_SPEED, 2.3, -2.3, 3.0);//move back to knock off blue ball
+                    ColorArm.setPosition(.1);//lift color arm up
+                    try//pause for flow
+                    {
+                        Thread.sleep(400);
+                    }
+                    catch (InterruptedException ex)
+                    {
+                        Thread.currentThread().interrupt();
+                    }
+                    encoderDrive(DRIVE_SPEED, -3, 3, 3.0);//move forward to starting position
+                }
                 if(vuMark == RelicRecoveryVuMark.CENTER)
                 {
-                    encoderDrive(DRIVE_SPEED, -37,  38, 5.0);
+                    encoderDrive(DRIVE_SPEED, -32.3,  32.3, 5.0);
                 }
                 else if(vuMark == RelicRecoveryVuMark.RIGHT)
                 {
-                    encoderDrive(DRIVE_SPEED, -28,  29, 5.0);
+                    encoderDrive(DRIVE_SPEED, -25.4,  25.4, 5.0);
                 }
                 else if(vuMark == RelicRecoveryVuMark.LEFT)
                 {
-                    encoderDrive(DRIVE_SPEED, -44, 45, 5.5);
+                    encoderDrive(DRIVE_SPEED, -39.8, 39.8, 5.5);
                 }
-                encoderDrive(DRIVE_SPEED, -15,  -15, 5.0);//turn right
-                lift(1, 600); //set arm up straight
+                encoderDrive(DRIVE_SPEED, -13,  -13, 5.0);//turn right
+                ColorArm.setPosition(.8);//lowers color arm
+                try//pause for flow
+                {
+                    Thread.sleep(400);
+                }
+                catch (InterruptedException ex)
+                {
+                    Thread.currentThread().interrupt();
+                }
+                lift(1, 600); //set block arm up straight
+                ColorArm.setPosition(.1);//tucks color arm away
+                try//pause for flow
+                {
+                    Thread.sleep(400);
+                }
+                catch (InterruptedException ex)
+                {
+                    Thread.currentThread().interrupt();
+                }
+                encoderDrive(DRIVE_SPEED, -4, 4, 5.0);//drive forward
                 Claw.setPosition(1);//release block
                 encoderDrive(DRIVE_SPEED, 7, -7, 5.0);//back up
-                Claw.setPosition(0);
+                Claw.setPosition(0);//close claw
                 try//pause for flow
                 {
                     Thread.sleep(500);
@@ -165,16 +228,15 @@ public class CroftAutoRedLeft extends LinearOpMode
                 {
                     Thread.currentThread().interrupt();
                 }
-                encoderDrive(DRIVE_SPEED, -8,  8, 5.0);// drive forward
+                encoderDrive(DRIVE_SPEED, -5,  5, 5.0);//drive forward
                 encoderDrive(DRIVE_SPEED, 4, -4, 5.0);//back up
                 i++;
             }
             else
             {
                 telemetry.addData("VuMark", "not visible");
-                LWheel.setPower(0.01);
-                RWheel.setPower(-0.01);
-
+                LWheel.setPower(-0.01);
+                RWheel.setPower(0.01);
             }
             telemetry.update();
         }
@@ -210,7 +272,7 @@ public class CroftAutoRedLeft extends LinearOpMode
         ArmHeight.setPower(0);
         try//pause for flow
         {
-            Thread.sleep(100);
+            Thread.sleep(300);
         }
         catch (InterruptedException ex)
         {
